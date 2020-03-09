@@ -1,13 +1,17 @@
 package main
 
 import (
+	"log"
 	"net/http"
+	"time"
 
 	"gee"
+	"middleware"
 )
 
 func main() {
 	r := gee.New()
+	r.Use(middleware.Logger())
 	r.GET("/", func(c *gee.Context) {
 		c.HTML(http.StatusOK, "<h1>Hello Gee</h1>")
 	})
@@ -24,6 +28,7 @@ func main() {
 	}
 
 	v2 := r.Group("/v2")
+	v2.Use(middlewareV2())
 	{
 		v2.GET("/", func(c *gee.Context) {
 			c.HTML(http.StatusOK, "<h1>version 2</h1>")
@@ -46,4 +51,12 @@ func main() {
 	})
 
 	r.Run(":9999")
+}
+
+func middlewareV2() gee.HandlerFunc {
+	return func(c *gee.Context) {
+		t := time.Now()
+		c.Fail(500, "Internal Server Error")
+		log.Printf("[%d] %s in %v for group v2", c.StatusCode, c.Req.RequestURI, time.Since(t))
+	}
 }

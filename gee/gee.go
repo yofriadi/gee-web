@@ -3,6 +3,7 @@ package gee
 import (
 	"log"
 	"net/http"
+	"strings"
 )
 
 // HandlerFunc defines the request handler used by gee
@@ -11,9 +12,10 @@ type HandlerFunc func(*Context)
 type (
 	// RouterGroup implement group routing
 	RouterGroup struct {
-		prefix string
-		parent *RouterGroup // support nesting route
-		engine *Engine
+		prefix      string
+		parent      *RouterGroup // support nesting route
+		engine      *Engine
+		middlewares []HandlerFunc
 	}
 
 	// Engine implement the interface of ServeHTTP
@@ -43,6 +45,11 @@ func (rg *RouterGroup) Group(prefix string) *RouterGroup {
 	return newGroup
 }
 
+// Use for adding middleware to the route
+func (rg *RouterGroup) Use(middewares ...HandlerFunc) {
+	rg.middlewares = append(rg.middlewares, middewares...)
+}
+
 func (rg *RouterGroup) addRoute(method, comp string, handler HandlerFunc) {
 	pattern := rg.prefix + comp
 	log.Printf("Route %4s - %s", method, pattern)
@@ -66,6 +73,13 @@ func (e *Engine) Run(addr string) (err error) {
 
 // ServeHTTP defines the method to serve http request
 func (e *Engine) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	var middlewares []HandlerFunc
+	for _, group := range e.groups {
+		if strings.HasPrefix(req.URL.Path, group.prefix) {
+			middlewares = append(middlewares, group.middlewares...)
+		}
+	}
 	c := newContext(w, req)
+	c.handlers = middlewares
 	e.router.handle(c)
 }
