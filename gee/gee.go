@@ -5,17 +5,18 @@ import (
 	"net/http"
 )
 
-// HandlerFn defines the request handler used by gee
+// HandlerFunc defines the request handler used by gee
 type HandlerFunc func(*Context)
 
-// Engine implement the interface of ServeHTTP
 type (
+	// RouterGroup implement group routing
 	RouterGroup struct {
 		prefix string
 		parent *RouterGroup // support nesting route
 		engine *Engine
 	}
 
+	// Engine implement the interface of ServeHTTP
 	Engine struct {
 		*RouterGroup
 		*router
